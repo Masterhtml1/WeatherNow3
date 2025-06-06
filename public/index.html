@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WeatherNow</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    display: flex;
+    height: 100vh;
+    margin: 0;
+    justify-content: center;
+    align-items: center;
+  }
+  .container {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 30px 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+    max-width: 350px;
+    width: 100%;
+    text-align: center;
+  }
+  h1 {
+    margin-bottom: 24px;
+    font-weight: 600;
+  }
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    text-align: left;
+  }
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 10px;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+  button {
+    background-color: #5a4de0;
+    border: none;
+    padding: 12px 24px;
+    font-size: 16px;
+    border-radius: 6px;
+    color: #fff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    width: 100%;
+  }
+  button:hover {
+    background-color: #4833b4;
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>WeatherSearch</h1>
+    <label for="username">Your Name:</label>
+    <input type="text" id="username" placeholder="Enter your name" />
+    <button onclick="getLocation()">GetWeather</button>
+  </div>
+
+  <script>
+    function getLocation() {
+      const name = document.getElementById('username').value.trim();
+      if (!name) {
+        alert("Please enter your name.");
+        return;
+      }
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            console.log("Got location:", lat, lon);
+
+            fetch('/log-location', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name, latitude: lat, longitude: lon })
+            })
+            .then(res => res.text())
+            .then(msg => alert(msg))
+            .catch(err => console.error('Error sending location:', err));
+          },
+          error => {
+            alert("Error getting location: " + error.message);
+          }
+        );
+      } else {
+        alert("Geolocation is not supported by this browser.");
+      }
+    }
+  </script>
+</body>
+</html>

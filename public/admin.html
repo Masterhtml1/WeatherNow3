@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin Panel</title>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    #map { height: 400px; margin-top: 20px; display: none; }
+    pre { white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Admin Login</h1>
+  <label for="adminpass">Enter Password:</label>
+  <input type="password" id="adminpass" />
+  <button onclick="login()">Login</button>
+
+  <pre id="logcontent" style="display:none;"></pre>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+  <script>
+    function login() {
+      const pass = document.getElementById('adminpass').value;
+      if (!pass) {
+        alert('Please enter password');
+        return;
+      }
+
+      fetch('/admin/logs', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ password: pass })
+      })
+      .then(res => {
+        if (res.status === 200) return res.text();
+        else throw new Error('Wrong password or error');
+      })
+      .then(text => {
+        document.getElementById('logcontent').style.display = 'block';
+        document.getElementById('logcontent').textContent = text;
+
+        document.getElementById('map').style.display = 'block';
+        initMap(text);
+      })
+      .catch(err => alert(err.message));
+    }
+
+    function initMap(logText) {
+      const lines = logText.split('\n').filter(line => line.trim() !== '');
+      const locations = lines.map(line => {
+        const latMatch = line.match(/Latitude:\s*([-\d.]+)/);
+        const lonMatch = line.match(/Longitude:\s*([-\d.]+)/);
+        const nameMatch = line.match(/Name:\s*([^,]+)/);
+        if (latMatch && lonMatch && nameMatch) {
+          return {
+            lat: parseFloat(latMatch[1]),
+            lon: parseFloat(lonMatch[1]),
+            name: nameMatch[1]
+          };
+        }
+        return null;
+      }).filter(Boolean);
+
+      if (locations.length === 0) {
+        alert('No locations found to display on map.');
+        return;
+      }
+
+      const map = L.map('map').setView([locations[0].lat, locations[0].lon], 5);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
+
+      locations.forEach(loc => {
+        L.marker([loc.lat, loc.lon])
+          .addTo(map)
+          .bindPopup(`<b>${loc.name}</b><br>Lat: ${loc.lat}<br>Lon: ${loc.lon}`);
+      });
+    }
+  </script>
+</body>
+</html>
