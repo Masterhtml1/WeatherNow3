@@ -2,84 +2,82 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Weather Search</title>
   <style>
     body {
       margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom right, #667eea, #764ba2);
+      height: 100vh;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      color: #fff;
     }
 
     .container {
-      background-color: #393963;
+      background: rgba(0, 0, 50, 0.8);
       padding: 30px;
       border-radius: 15px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-      width: 90%;
-      max-width: 400px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
       text-align: center;
+      width: 90%;
+      max-width: 500px;
     }
 
-    h1 {
+    .container h2 {
+      color: #fff;
       margin-bottom: 20px;
     }
 
-    input {
+    input[type="text"] {
       width: 100%;
-      padding: 12px;
-      margin: 10px 0;
+      padding: 10px;
+      margin-bottom: 15px;
       border: none;
       border-radius: 8px;
       font-size: 16px;
-      box-sizing: border-box;
     }
 
     button {
       width: 100%;
       padding: 12px;
-      margin: 10px 0;
-      background-color: #5f52d5;
-      color: white;
+      background-color: #635bff;
+      color: #fff;
       border: none;
       border-radius: 8px;
       font-size: 16px;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: background-color 0.2s ease-in-out;
     }
 
     button:hover {
-      background-color: #4a3db7;
+      background-color: #5146e1;
     }
 
-    #weather {
+    #weatherResult {
       margin-top: 20px;
-      background-color: #222;
-      padding: 15px;
-      border-radius: 10px;
+      background: #111;
+      color: #00ff00;
+      padding: 10px;
+      border-radius: 8px;
       font-family: monospace;
-      color: #00ff88;
-      text-align: left;
+      font-size: 15px;
+      white-space: pre-wrap;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Weather Search</h1>
+    <h2>Weather Search</h2>
     <input type="text" id="username" placeholder="Enter your name" />
-    <button onclick="getWeather()">Get Weather</button>
-    <div id="weather">Weather will appear here.</div>
+    <button onclick="getLocation()">Get Weather</button>
+    <div id="weatherResult">Weather will appear here.</div>
   </div>
 
   <script>
-    const API_KEY = '5b07060627da1ce16874beb3a8a245a9'; // Replace with your OpenWeatherMap API key
+    const OPENWEATHER_API_KEY = '5b07060627da1ce16874beb3a8a245a9'; // Replace with your OpenWeatherMap API key
 
-    function getWeather() {
+    function getLocation() {
       const name = document.getElementById('username').value.trim();
       if (!name) {
         alert("Please enter your name.");
@@ -88,42 +86,41 @@
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          position => {
+          async position => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
 
-            // Log location
+            // Send name + location to server
             fetch('/log-location', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name, latitude: lat, longitude: lon })
-            }).catch(err => console.error('Logging failed:', err));
+            }).catch(err => console.error('Error sending location:', err));
 
-            // Get weather
-            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`)
-              .then(res => res.json())
-              .then(data => {
-                if (data.main) {
-                  document.getElementById('weather').innerHTML = `
-                    Location: ${data.name}<br>
-                    Temperature: ${data.main.temp} °C<br>
-                    Condition: ${data.weather[0].description}<br>
-                    Wind: ${data.wind.speed} m/s
-                  `;
-                } else {
-                  document.getElementById('weather').innerHTML = 'Could not fetch weather.';
-                }
-              })
-              .catch(() => {
-                document.getElementById('weather').innerHTML = 'Could not fetch weather.';
-              });
+            // Fetch city and weather info
+            try {
+              const geoRes = await fetch(`https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${OPENWEATHER_API_KEY}`);
+              const geoData = await geoRes.json();
+              const city = geoData[0]?.name || 'your area';
+
+              const weatherRes = await fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=imperial`);
+              const weatherData = await weatherRes.json();
+              const weather = weatherData.weather[0].description;
+              const temp = weatherData.main.temp;
+
+              document.getElementById('weatherResult').textContent =
+                `Weather for ${city}:\n${weather}, ${temp}°F`;
+            } catch (err) {
+              document.getElementById('weatherResult').textContent = 'Could not get weather.';
+              console.error(err);
+            }
           },
           error => {
-            alert("Location error: " + error.message);
+            alert("Error getting location: " + error.message);
           }
         );
       } else {
-        alert("Geolocation is not supported.");
+        alert("Geolocation is not supported by this browser.");
       }
     }
   </script>
