@@ -1,93 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>WeatherNow</title>
-<style>
-  body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: #fff;
-    display: flex;
-    height: 100vh;
-    margin: 0;
-    justify-content: center;
-    align-items: center;
-  }
-  .container {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 30px 40px;
-    border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0,0,0,0.3);
-    max-width: 350px;
-    width: 100%;
-    text-align: center;
-  }
-  h1 {
-    margin-bottom: 24px;
-    font-weight: 600;
-  }
-  label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 600;
-    text-align: left;
-  }
-  input[type="text"] {
-    width: 100%;
-    padding: 12px 10px;
-    border-radius: 6px;
-    border: none;
-    font-size: 16px;
-    margin-bottom: 20px;
-  }
-  button {
-    background-color: #5a4de0;
-    border: none;
-    padding: 12px 24px;
-    font-size: 16px;
-    border-radius: 6px;
-    color: #fff;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-    width: 100%;
-  }
-  button:hover {
-    background-color: #4833b4;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Weather Search</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f0f8ff;
+      border-radius: 12px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.1);
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    button {
+      cursor: pointer;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 6px;
+    }
+    #weatherDisplay {
+      margin-top: 30px;
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>WeatherSearch</h1>
-    <label for="username">Your Name:</label>
-    <input type="text" id="username" placeholder="Enter your name" />
-    <button onclick="getLocation()">GetWeather</button>
-  </div>
+  <h1>Weather Search</h1>
+  <label for="username">Your Name:</label><br>
+  <input type="text" id="username" placeholder="Enter your name" /><br>
+  <button onclick="getLocation()">Get Weather</button>
+
+  <div id="weatherDisplay"></div>
 
   <script>
+    const API_KEY = '5b07060627da1ce16874beb3a8a245a9'; // <-- Replace with your OpenWeatherMap API key
+
     function getLocation() {
       const name = document.getElementById('username').value.trim();
       if (!name) {
         alert("Please enter your name.");
         return;
       }
+
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           position => {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            console.log("Got location:", lat, lon);
 
+            // Send name + location to backend (no alert)
             fetch('/log-location', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ name, latitude: lat, longitude: lon })
-            })
-            .then(res => res.text())
-            .then(msg => alert(msg))
-            .catch(err => console.error('Error sending location:', err));
+            }).catch(err => console.error('Error sending location:', err));
+
+            // Fetch weather data
+            fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`)
+              .then(res => res.json())
+              .then(data => {
+                const weatherDiv = document.getElementById('weatherDisplay');
+                weatherDiv.innerHTML = `
+                  <h2>Weather in ${data.name}</h2>
+                  <p><strong>${data.weather[0].main}</strong> - ${data.weather[0].description}</p>
+                  <p>🌡️ Temp: ${data.main.temp}°C</p>
+                  <p>💧 Humidity: ${data.main.humidity}%</p>
+                  <p>🌬️ Wind: ${data.wind.speed} m/s</p>
+                `;
+              });
           },
           error => {
             alert("Error getting location: " + error.message);
